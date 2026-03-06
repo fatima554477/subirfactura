@@ -320,6 +320,8 @@ elseif($borrasbdoc =='borrasbdoc'){
 	$borra_id_sb = isset($_POST["borra_id_sb"])?$_POST["borra_id_sb"]:"";   
 	
 		echo  $SUBEFACTURA->delete_subefacturadocto2($borra_id_sb);
+			$SUBEFACTURA->registrar_bitacora_sb('eliminar', 'Se eliminó un documento temporal en 02SUBETUFACTURADOCTOS', $borra_id_sb, '02SUBETUFACTURADOCTOS');
+
 }
 
 
@@ -346,6 +348,8 @@ foreach($_FILES AS $ETQIETA => $VALOR){
 		}
 	}
 }else{echo $ADJUNTAR_FACTURA_XML;}
+$SUBEFACTURA->registrar_bitacora_sb('adjuntar', 'Se adjuntó/actualizó un documento en 02SUBETUFACTURADOCTOS', $IPSB1p, '02SUBETUFACTURADOCTOS');
+
 }
 
 }else{	echo "no hay usuario seleccionado";}
@@ -373,6 +377,10 @@ foreach($_FILES AS $ETQIETA => $VALOR){
 		}
 	}
 }else{echo $ADJUNTAR_FACTURA_XML;}
+
+
+	$SUBEFACTURA->registrar_bitacora_sb('adjuntar', 'Se adjuntó un documento temporal en 02SUBETUFACTURADOCTOS', 'si', '02SUBETUFACTURADOCTOS');
+
 
 
 
