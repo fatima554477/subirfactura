@@ -239,7 +239,7 @@ $('#RAZON_SOCIAL2').load(location.href + ' #RAZON_SOCIAL2');
 $('#RFC_PROVEEDOR2').load(location.href + ' #RFC_PROVEEDOR2');
 $('#CONCEPTO_PROVEE2').load(location.href + ' #CONCEPTO_PROVEE2');
 $('#TIPO_DE_MONEDA2').load(location.href + ' #TIPO_DE_MONEDA2');
-$('#FECHA_DE_PAGO2').load(location.href + ' #FECHA_DE_PAGO2');
+
 $('#NUMERO_CONSECUTIVO_PROVEE2').load(location.href + ' #NUMERO_CONSECUTIVO_PROVEE2');
 $('#2MONTO_FACTURA').load(location.href + ' #2MONTO_FACTURA');
 $('#2MONTO_DEPOSITAR').load(location.href + ' #2MONTO_DEPOSITAR');
@@ -485,7 +485,7 @@ $.ajax({
 			$("#PFORMADE_PAGO").val(''); //borra valores vienen de PHP
 		
 			$("#TIPO_DE_MONEDA").val(''); //borra valores vienen de PHP
-			$("#FECHA_DE_PAGO").val(''); //borra valores vienen de PHP
+		
 			$("#NUMERO_CONSECUTIVO_PROVEE").val(''); //borra valores vienen de PHP
 			$("#ADJUNTAR_FACTURA_XML").val(''); //borra valores vienen de PHP
 			$("#2MONTO_FACTURA").val(''); //borra valores vienen de PHP
