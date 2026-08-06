@@ -90,7 +90,7 @@ $("#FECHA_A_DEPOSITAR_1").val("");
 		$(function() {
 			load(1);
 		});
-		function load(page){
+		function load(page, callback){
 			var query=$("#NOMBRE_EVENTO").val();
 			var DEPARTAMENTO2=$("#DEPARTAMENTO2WE").val();var NUMERO_CONSECUTIVO_PROVEE=$("#NUMERO_CONSECUTIVO_PROVEE_1").val();
 var NOMBRE_COMERCIAL=$("#NOMBRE_COMERCIAL_1").val();
@@ -276,11 +276,104 @@ var propina=$("#propina").val();
 				$("#loader").html("Cargando...");
 			  },
 				success:function(data){
-					$(".datos_ajax").html(data).fadeIn('slow');
+					$(".datos_ajax").html(data).fadeIn('slow', function () {
+						if (typeof callback === 'function') { callback(); }
+					});
 					$("#loader").html("");
 				}
 			})
 		}
 /* terminaB1*/		
 		
-	</script>
+
+	
+/* Modales AJAX para documentos de pago; los eventos delegados sobreviven a la paginación del listado. */
+if (!document.getElementById('estilo-resaltado-documento-pago')) {
+    var estiloResaltado = document.createElement('style');
+    estiloResaltado.id = 'estilo-resaltado-documento-pago';
+    estiloResaltado.textContent = '.documento-pago-resaltado{background-color:#fff3a1 !important;transition:background-color .4s ease;}';
+    document.head.appendChild(estiloResaltado);
+}
+(function ($) {
+    var endpointDocumentosPago = 'subirfactura/controladorSB.php';
+    var camposPorModal = {
+        acuse_cancelacion: ['ACUSE_CANCELACION'],
+        complemento_pago: ['COMPLEMENTOS_PAGO_XML', 'COMPLEMENTOS_PAGO_PDF']
+    };
+    function escapar(valor) { return $('<div>').text(valor || '').html(); }
+    function modalId(tipo) { return tipo === 'acuse_cancelacion' ? '#modalAcuseCancelacion' : '#modalComplementoPago'; }
+    function mostrarModal(tipo) {
+        var el = document.querySelector(modalId(tipo));
+        if (window.bootstrap && window.bootstrap.Modal) { window.bootstrap.Modal.getOrCreateInstance(el).show(); }
+        else { $(el).modal('show'); }
+    }
+    function cerrarModal(tipo) {
+        var el = document.querySelector(modalId(tipo));
+        if (window.bootstrap && window.bootstrap.Modal) { window.bootstrap.Modal.getOrCreateInstance(el).hide(); }
+        else { $(el).modal('hide'); }
+    }
+    function renderDocumentos(tipo, documentos) {
+        var modal = $(modalId(tipo));
+        camposPorModal[tipo].forEach(function (campo) {
+            var archivo = documentos[campo] || '';
+            var contenedor = modal.find('[data-documento-actual="' + campo + '"]');
+            if (!archivo) { contenedor.html('<span class="text-muted">Sin archivo cargado.</span>'); return; }
+            var enlace = 'includes/archivos/' + encodeURIComponent(archivo);
+            contenedor.html('<a target="_blank" rel="noopener" href="' + enlace + '">Visualizar ' + escapar(archivo) + '</a>');
+        });
+    }
+    function scrollARegistro(tipo, id) {
+        var objetivo = $('[data-doc-cell="' + tipo + '"][data-id="' + id + '"]').first();
+        if (!objetivo.length) { objetivo = $('.view_documento_pago[data-id="' + id + '"]').first(); }
+        if (!objetivo.length) { return; }
+        objetivo[0].scrollIntoView({behavior: 'smooth', block: 'center', inline: 'center'});
+        objetivo.addClass('documento-pago-resaltado');
+        setTimeout(function () { objetivo.removeClass('documento-pago-resaltado'); }, 1500);
+    }
+    $(document).on('click', '.view_documento_pago', function () {
+        var tipo = $(this).data('documento-tipo'), id = $(this).data('id');
+        var modal = $(modalId(tipo));
+        modal.data('registro-id', id).find('input[type=file]').val('');
+        modal.find('.nombre-archivo').text('Ningún archivo seleccionado.');
+        $.post(endpointDocumentosPago, {action: 'documentos_pago_info', id: id}, function (respuesta) {
+            if (!respuesta.ok) { alert(respuesta.mensaje); return; }
+            renderDocumentos(tipo, respuesta.documentos); mostrarModal(tipo);
+        }, 'json').fail(function () { alert('No fue posible consultar los documentos.'); });
+    });
+    $(document).on('change', '.modal-documento-pago input[type=file]', function () {
+        $(this).closest('.form-group').find('.nombre-archivo').text(this.files.length ? this.files[0].name : 'Ningún archivo seleccionado.');
+    });
+    $(document).on('click', '.guardar_documento_pago', function () {
+        var modal = $(this).closest('.modal-documento-pago'), tipo = modal.data('tipo'), id = modal.data('registro-id');
+        var archivos = modal.find('input[type=file]'), pendientes = 0, error = false;
+        archivos.each(function () { if (this.files.length) { pendientes++; } });
+        if (!pendientes) { alert('Seleccione al menos un archivo.'); return; }
+        $(this).prop('disabled', true);
+        archivos.each(function () {
+            if (!this.files.length) { return; }
+            var fd = new FormData(); fd.append('action', 'documentos_pago_guardar'); fd.append('id', id); fd.append('campo', $(this).data('campo')); fd.append('archivo', this.files[0]);
+            $.ajax({url: endpointDocumentosPago, type: 'POST', data: fd, processData: false, contentType: false, dataType: 'json'}).done(function (respuesta) {
+                if (!respuesta.ok) { error = true; alert(respuesta.mensaje); } else { renderDocumentos(tipo, respuesta.documentos); }
+            }).fail(function () { error = true; alert('No fue posible guardar el archivo.'); }).always(function () {
+                pendientes--;
+                if (!pendientes) {
+                    modal.find('.guardar_documento_pago').prop('disabled', false);
+                    if (!error) {
+                        modal.find('input[type=file]').val('');
+                        modal.find('.nombre-archivo').text('Ningún archivo seleccionado.');
+                        cerrarModal(tipo);
+                        load(1, function () { scrollARegistro(tipo, id); });
+                    }
+                }
+            });
+        });
+    });
+    $(document).on('hidden.bs.modal', '.modal-documento-pago', function () {
+        load(1);
+    });
+	
+})(jQuery);
+		</script>
+
+<div class="modal fade modal-documento-pago" id="modalAcuseCancelacion" data-tipo="acuse_cancelacion" tabindex="-1" aria-hidden="true"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Acuse de cancelación</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button></div><div class="modal-body"><div class="form-group mb-3"><label class="text-uppercase fw-bold">Archivo PDF</label><input type="file" class="form-control" data-campo="ACUSE_CANCELACION" accept="application/pdf,.pdf"><small class="nombre-archivo text-muted">Ningún archivo seleccionado.</small><div class="mt-2" data-documento-actual="ACUSE_CANCELACION"></div></div></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button><button type="button" class="btn btn-danger guardar_documento_pago">Guardar acuse</button></div></div></div></div>
+<div class="modal fade modal-documento-pago" id="modalComplementoPago" data-tipo="complemento_pago" tabindex="-1" aria-hidden="true"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Complemento de pago</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button></div><div class="modal-body"><div class="form-group mb-3"><label class="text-uppercase fw-bold">XML del complemento de pago</label><input type="file" class="form-control" data-campo="COMPLEMENTOS_PAGO_XML" accept="application/xml,text/xml,.xml"><small class="nombre-archivo text-muted">Ningún archivo seleccionado.</small><div class="mt-2" data-documento-actual="COMPLEMENTOS_PAGO_XML"></div></div><div class="form-group mb-3"><label class="text-uppercase fw-bold">PDF del complemento de pago</label><input type="file" class="form-control" data-campo="COMPLEMENTOS_PAGO_PDF" accept="application/pdf,.pdf"><small class="nombre-archivo text-muted">Ningún archivo seleccionado.</small><div class="mt-2" data-documento-actual="COMPLEMENTOS_PAGO_PDF"></div></div></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button><button type="button" class="btn btn-primary guardar_documento_pago">Guardar complemento</button></div></div></div></div>
