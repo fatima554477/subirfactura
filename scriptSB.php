@@ -407,6 +407,14 @@ success:function(data){
 });
 }
 
+// Valida que el número de evento tenga el formato: prefijo de la empresa (EPC, INN o EVE)
+// seguido ÚNICAMENTE de números, sin letras ni caracteres adicionales.
+// Devuelve true si es válido, false si no.
+function formatoNumeroEventoValido(numeroEvento) {
+    var patron = /^(EPC|INN|EVE)[0-9]+$/i;
+    return patron.test(numeroEvento);
+}
+
    
 $(document).ready(function(){
 	
@@ -452,13 +460,12 @@ const mostrarMensajeSubirFactura = (html, tiempoVisible) => {
 
 };
 const numeroEventoInput = $('input[name="NUMERO_EVENTO"]');
-const numeroEventoSanitizado = numeroEventoInput.val().replace(/\s+/g, '').trim();
+const numeroEventoSanitizado = numeroEventoInput.val().replace(/\s+/g, '').trim().toUpperCase();
 numeroEventoInput.val(numeroEventoSanitizado);
 const numeroEvento = numeroEventoSanitizado;
-const prefijosNumeroEvento = ["EPC", "INN", "EVE"];
 
-if (prefijosNumeroEvento.includes(numeroEvento.toUpperCase())) {
-       mostrarMensajeSubirFactura("<span style='color:red;'>FAVOR DE COMPLETAR EL NÚMERO DE EVENTO AGREGANDO EL NÚMERO CORRESPONDIENTE DESPUÉS DE LAS INICIALES DE LA EMPRESA.</span>", 5000);
+if (!formatoNumeroEventoValido(numeroEvento)) {
+       mostrarMensajeSubirFactura("<span style='color:red;'>EL NÚMERO DE EVENTO DEBE SER LAS INICIALES DE LA EMPRESA (EPC, INN O EVE) SEGUIDAS ÚNICAMENTE DE NÚMEROS, SIN LETRAS NI CARACTERES ADICIONALES. EJEMPLO: EPC123.</span>", 6000);
 
         return;
 }
